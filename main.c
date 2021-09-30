@@ -323,7 +323,6 @@ void renderInterface(int globalTime, Queue *nextCustomers,
 }
 
 void GameoverDisplay() {
-	clearConsole();
 	FILE *gameoverFile = fopen("gameover.txt", "r");
 	char message[255]; // string for scan
 	while (feof(gameoverFile) == 0) {
