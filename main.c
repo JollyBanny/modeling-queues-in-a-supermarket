@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+// #include <unistd.h>
 
 int MAX_CUSTOMER_TIME;
 int MAX_CASHIER_QUEUE;
@@ -32,19 +32,31 @@ typedef struct Cashier {
 	Queue *queue;
 } Cashier;
 
-void loadConfig(FILE *configFile) {
-	int config[4];	  // tmp array for settings value
-	char setting[32]; // string for scan
-	for (int i = 0; i < 4; ++i) {
-		// split before "="
-		char *key = strtok(fgets(setting, sizeof(setting), configFile), "=");
-		// split before ";"
-		// config[i] = atoi(strtok(NULL, ";"));
+void readConfigFile(char *key) {
+	char *setting = strtok(key, "=");
+	char *value = strtok(NULL, "\n");
+	if (atoi(value) == 0 || atoi(value) < 0) {
+		printf("Incorrect value of key: %s=%s", setting, value);
+		exit(EXIT_FAILURE);
 	}
-	MAX_CUSTOMER_TIME = config[0];
-	MAX_CASHIER_QUEUE = config[1];
-	MAX_CASHIERS = config[2];
-	MAX_NEXT_CUSTOMERS = config[3];
+	if (!strcmp(setting, "MAX_CUSTOMER_TIME")) {
+		MAX_CUSTOMER_TIME = atoi(value);
+	} else if (!strcmp(setting, "MAX_CASHIER_QUEUE")) {
+		MAX_CASHIER_QUEUE = atoi(value);
+	} else if (!strcmp(setting, "MAX_CASHIERS")) {
+		MAX_CASHIERS = atoi(value);
+	} else if (!strcmp(setting, "MAX_NEXT_CUSTOMERS")) {
+		MAX_NEXT_CUSTOMERS = atoi(value);
+	} else {
+		printf("Incorrect setting key: %s", setting);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void loadConfig(FILE *configFile) {
+	char setting[32]; // string for scan
+	for (int i = 0; i < 4; ++i)
+		readConfigFile(fgets(setting, sizeof(setting), configFile));
 }
 
 void loadFiles() {
@@ -52,8 +64,7 @@ void loadFiles() {
 	if (configFile == NULL) {
 		printf("Config file not found");
 		exit(EXIT_FAILURE);
-	}
-	else
+	} else
 		loadConfig(configFile);
 	FILE *gameoverFile = fopen("gameover.txt", "r");
 	if (gameoverFile == NULL) {
@@ -304,12 +315,12 @@ void renderInterface(int globalTime, Queue *nextCustomers,
 }
 
 void GameoverDisplay() {
-	clearConsole();
+	// clearConsole();
 	FILE *gameoverFile = fopen("gameover.txt", "r");
 	char message[255]; // string for scan
 	while (feof(gameoverFile) == 0) {
 		fgets(message, sizeof(message), gameoverFile);
-		printf(message);
+		printf("%s", message);
 	}
 	fclose(gameoverFile);
 }
@@ -318,7 +329,6 @@ int main() {
 	srand(time(NULL)); // randomize seed
 	// load config
 	loadFiles();
-
 	long long globalTime = 0; // global timer
 	Cashier **cashdesks = (Cashier **)malloc(
 		MAX_CASHIERS * sizeof(Cashier *)); // array of cashdesks
