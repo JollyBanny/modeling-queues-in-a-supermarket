@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-// #include <unistd.h>
+#include <unistd.h>
 
 int MAX_CUSTOMER_TIME;
 int MAX_CASHIER_QUEUE;
@@ -32,6 +32,16 @@ typedef struct Cashier {
 	Queue *queue;
 } Cashier;
 
+void clearConsole() {
+#if __unix__ || __linux__ || __APPLE__ || __MACH__
+	system("clear");
+#elif _WIN32
+	system("cls");
+#else
+	puts("what the OS says?");
+#endif
+}
+
 void readConfigFile(char *key) {
 	char *setting = strtok(key, "=");
 	char *value = strtok(NULL, "\n");
@@ -54,7 +64,7 @@ void readConfigFile(char *key) {
 }
 
 void loadConfig(FILE *configFile) {
-	char setting[32]; // string for scan
+	char setting[32];
 	for (int i = 0; i < 4; ++i)
 		readConfigFile(fgets(setting, sizeof(setting), configFile));
 }
@@ -121,6 +131,30 @@ bool CashdeskGetWork(Cashier *cashdesk) { return cashdesk->_work; }
 
 void CashdeskSetWork(Cashier *cashdesk, bool value) { cashdesk->_work = value; }
 
+int CashdesksQueueCustomersCount(Cashier **cashdesks) {
+	int value = 0;
+	for (int i = 0; i < MAX_CASHIERS; ++i) {
+		value += QueueGetSize(cashdesks[i]->queue);
+	}
+	return value;
+}
+
+int CashdesksServedCustomersCount(Cashier **cashdesks) {
+	int value = 0;
+	for (int i = 0; i < MAX_CASHIERS; ++i) {
+		value += CashdeskGetServed(cashdesks[i]);
+	}
+	return value;
+}
+
+int CashdesksWorkCount(Cashier **cashdesks) {
+	int value = 0;
+	for (int i = 0; i < MAX_CASHIERS; ++i) {
+		value += CashdeskGetWork(cashdesks[i]);
+	}
+	return value;
+}
+
 void QueuePush(Queue *q, QueueNode *node) {
 	if (!node)
 		node = newNode(newPerson());
@@ -154,7 +188,7 @@ void CashdeskQueuePop(Cashier *cashier) {
 	}
 }
 
-bool CashdeskPush(Cashier **cashdesks, QueueNode *node) {
+bool CashdeskQueuePush(Cashier **cashdesks, QueueNode *node) {
 	Cashier *maxCustomersCashdesk = NULL;
 	for (int i = 0; i < MAX_CASHIERS; ++i) {
 		if (QueueGetSize(cashdesks[i]->queue) == MAX_CASHIER_QUEUE)
@@ -172,35 +206,22 @@ bool CashdeskPush(Cashier **cashdesks, QueueNode *node) {
 	return maxCustomersCashdesk == NULL;
 }
 
-bool CashdeskQueuePush(Cashier **cashdesks, Queue *nextCustomers) {
+bool CashdeskPush(Cashier **cashdesks, Queue *nextCustomers) {
 	bool GAMEOVER_FLAG = false;
-	QueueNode *node = QueuePop(nextCustomers);
+	QueueNode *node = QueuePeek(nextCustomers);
 	while (node && !GAMEOVER_FLAG) {
-		GAMEOVER_FLAG = CashdeskPush(cashdesks, node);
+		int value = 0;
+		for (int i = 0; i < MAX_CASHIERS; ++i) {
+			value += QueueGetSize(cashdesks[i]->queue);
+		}
+		if (value == MAX_CASHIERS * MAX_CASHIER_QUEUE) {
+			return GAMEOVER_FLAG = true;
+		}
 		node = QueuePop(nextCustomers);
+		if (node)
+			GAMEOVER_FLAG = CashdeskQueuePush(cashdesks, node);
 	}
 	return GAMEOVER_FLAG;
-}
-
-void CashdeskQueueDisplay(Cashier **cashdesks) {
-	QueueNode **currentCustomers =
-		(QueueNode **)malloc(MAX_CASHIERS * sizeof(QueueNode *));
-	for (int i = 0; i < MAX_CASHIERS; ++i) {
-		currentCustomers[i] = QueuePeek(cashdesks[i]->queue);
-	}
-	for (int i = 0; i < MAX_CASHIER_QUEUE; ++i) {
-		for (int j = 0; j < MAX_CASHIERS; ++j) {
-			if (currentCustomers[j]) {
-				printf("\t%c%d", PersonGetName(currentCustomers[j]->person),
-					   PersonGetTime(currentCustomers[j]->person));
-				currentCustomers[j] = currentCustomers[j]->next;
-			} else
-				printf("\t||");
-		}
-		if (i < MAX_CASHIER_QUEUE - 1)
-			printf("\n");
-	}
-	free(currentCustomers);
 }
 
 void CashdeskServe(Cashier *cashier) {
@@ -249,38 +270,25 @@ void QueueNextCustomersDisplay(Queue *q) {
 	}
 }
 
-int QueueCustomersCountDisplay(Cashier **cashdesks) {
-	int value = 0;
+void CashdeskQueueDisplay(Cashier **cashdesks) {
+	QueueNode **currentCustomers =
+		(QueueNode **)malloc(MAX_CASHIERS * sizeof(QueueNode *));
 	for (int i = 0; i < MAX_CASHIERS; ++i) {
-		value += QueueGetSize(cashdesks[i]->queue);
+		currentCustomers[i] = QueuePeek(cashdesks[i]->queue);
 	}
-	return value;
-}
-
-int CashdesksServedCustomersCountDisplay(Cashier **cashdesks) {
-	int value = 0;
-	for (int i = 0; i < MAX_CASHIERS; ++i) {
-		value += CashdeskGetServed(cashdesks[i]);
+	for (int i = 0; i < MAX_CASHIER_QUEUE; ++i) {
+		for (int j = 0; j < MAX_CASHIERS; ++j) {
+			if (currentCustomers[j]) {
+				printf("\t%c%d", PersonGetName(currentCustomers[j]->person),
+					   PersonGetTime(currentCustomers[j]->person));
+				currentCustomers[j] = currentCustomers[j]->next;
+			} else
+				printf("\t||");
+		}
+		if (i < MAX_CASHIER_QUEUE - 1)
+			printf("\n");
 	}
-	return value;
-}
-
-int CashdesksWorkCountDisplay(Cashier **cashdesks) {
-	int value = 0;
-	for (int i = 0; i < MAX_CASHIERS; ++i) {
-		value += CashdeskGetWork(cashdesks[i]);
-	}
-	return value;
-}
-
-void clearConsole() {
-#if __unix__ || __linux__ || __APPLE__ || __MACH__
-	system("clear");
-#elif _WIN32
-	system("cls");
-#else
-	puts("what the OS says?");
-#endif
+	free(currentCustomers);
 }
 
 void renderInterface(int globalTime, Queue *nextCustomers,
@@ -306,21 +314,21 @@ void renderInterface(int globalTime, Queue *nextCustomers,
 	CashdeskQueueDisplay(cashdesks);
 	printf("\nВремя: %d", globalTime);
 	QueueNextCustomersDisplay(nextCustomers);
-	printf("\nЧеловек в очередях: %d", QueueCustomersCountDisplay(cashdesks));
-	printf("\nКасс работает: %d из %d", CashdesksWorkCountDisplay(cashdesks),
+	printf("\nЧеловек в очередях: %d", CashdesksQueueCustomersCount(cashdesks));
+	printf("\nКасс работает: %d из %d", CashdesksWorkCount(cashdesks),
 		   MAX_CASHIERS);
 	printf("\nВсего обслужено: %d",
-		   CashdesksServedCustomersCountDisplay(cashdesks));
+		   CashdesksServedCustomersCount(cashdesks));
 	printf("\nДопустимая очередь на кассу: %d\n", MAX_CASHIER_QUEUE);
 }
 
 void GameoverDisplay() {
-	// clearConsole();
+	clearConsole();
 	FILE *gameoverFile = fopen("gameover.txt", "r");
 	char message[255]; // string for scan
 	while (feof(gameoverFile) == 0) {
 		fgets(message, sizeof(message), gameoverFile);
-		printf("%s", message);
+		printf(message);
 	}
 	fclose(gameoverFile);
 }
@@ -329,6 +337,7 @@ int main() {
 	srand(time(NULL)); // randomize seed
 	// load config
 	loadFiles();
+
 	long long globalTime = 0; // global timer
 	Cashier **cashdesks = (Cashier **)malloc(
 		MAX_CASHIERS * sizeof(Cashier *)); // array of cashdesks
@@ -348,7 +357,7 @@ int main() {
 			CashdeskServe(cashdesks[i]);
 		}
 		// distribution to the cashdesk queue
-		if (CashdeskQueuePush(cashdesks, nextCustomers)) {
+		if (CashdeskPush(cashdesks, nextCustomers)) {
 			renderInterface(globalTime, nextCustomers, cashdesks);
 			GameoverDisplay();
 			break;
