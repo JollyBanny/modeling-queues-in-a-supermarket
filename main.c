@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+// #include <unistd.h>
 
 int MAX_CUSTOMER_TIME;
 int MAX_CASHIER_QUEUE;
@@ -184,7 +184,7 @@ void CashdeskQueuePop(Cashier *cashier) {
 	CashdeskIncrementServed(cashier);
 	if (node) {
 		free(node->person);
-		free(node);
+		// free(node);
 	}
 }
 
@@ -261,7 +261,7 @@ void freeCashdesks(Cashier **cashdesks) {
 }
 
 void QueueNextCustomersDisplay(Queue *q) {
-	printf("\nСледующие посетители: ");
+	printf("\nNext customers: ");
 	QueueNode *node = QueuePeek(q);
 	while (node) {
 		printf("%c%d ", PersonGetName(node->person),
@@ -293,9 +293,9 @@ void CashdeskQueueDisplay(Cashier **cashdesks) {
 
 void renderInterface(int globalTime, Queue *nextCustomers,
 					 Cashier **cashdesks) {
-	clearConsole();
+	// clearConsole();
 	// display Remi
-	printf("Супермаркет \"Реми\". Система моделирования очередей.\n");
+	printf("Supermarket \"Remy\". Queue modeling system.\n");
 	// display cashdesk number
 	for (int i = 1; i <= MAX_CASHIERS; i++)
 		printf("\t%d", i);
@@ -312,17 +312,18 @@ void renderInterface(int globalTime, Queue *nextCustomers,
 	printf("\n");
 	// display queues of cashdesks
 	CashdeskQueueDisplay(cashdesks);
-	printf("\nВремя: %d", globalTime);
+	printf("\nTime: %d", globalTime);
 	QueueNextCustomersDisplay(nextCustomers);
-	printf("\nЧеловек в очередях: %d", CashdesksQueueCustomersCount(cashdesks));
-	printf("\nКасс работает: %d из %d", CashdesksWorkCount(cashdesks),
+	printf("\nCustomers in queue: %d", CashdesksQueueCustomersCount(cashdesks));
+	printf("\nWorking cashdesks: %d of %d", CashdesksWorkCount(cashdesks),
 		   MAX_CASHIERS);
-	printf("\nВсего обслужено: %d",
+	printf("\nServed customers: %d",
 		   CashdesksServedCustomersCount(cashdesks));
-	printf("\nДопустимая очередь на кассу: %d\n", MAX_CASHIER_QUEUE);
+	printf("\nAcceptable queue at the checkout: %d\n", MAX_CASHIER_QUEUE);
 }
 
 void GameoverDisplay() {
+	// clearConsole();
 	FILE *gameoverFile = fopen("gameover.txt", "r");
 	char message[255]; // string for scan
 	while (feof(gameoverFile) == 0) {
@@ -332,7 +333,7 @@ void GameoverDisplay() {
 	fclose(gameoverFile);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	srand(time(NULL)); // randomize seed
 	// load config
 	loadFiles();
