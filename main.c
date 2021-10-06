@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+// #include <unistd.h>
 
 int MAX_CUSTOMER_TIME;
 int MAX_CASHIER_QUEUE;
@@ -293,9 +293,9 @@ void CashdeskQueueDisplay(Cashier **cashdesks) {
 
 void renderInterface(int globalTime, Queue *nextCustomers,
 					 Cashier **cashdesks) {
-	// clearConsole();
+	clearConsole();
 	// display Remi
-	printf("Supermarket \"Remy\". Queue modeling system.\n");
+	printf("Supermarket \"Remi\". Queue modeling system.\n");
 	// display cashdesk number
 	for (int i = 1; i <= MAX_CASHIERS; i++)
 		printf("\t%d", i);
@@ -323,7 +323,6 @@ void renderInterface(int globalTime, Queue *nextCustomers,
 }
 
 void GameoverDisplay() {
-	// clearConsole();
 	FILE *gameoverFile = fopen("gameover.txt", "r");
 	char message[255]; // string for scan
 	while (feof(gameoverFile) == 0) {
